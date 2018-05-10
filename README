@@ -21,6 +21,10 @@ Several prerequisites:
   incoming rate, thus, rate of all incoming tx queues has to be a
   little less
 - Real rates can differ, due to discreetness
+- Map skb-priority to txq is not enouph, also skb-priority to l2 prio
+  has to be done
+- Any l2/socket prio (0 - 7) for classes can be used, but for
+  simlicity default values are used 3 and 2
 
 Test setup for examples
 =======================
@@ -627,3 +631,5 @@ $ tc qdisc del dev eth1 root
 net eth1: Prev FIFO2 is shaped
 net eth1: set FIFO3 bw = 0
 net eth1: set FIFO2 bw = 0
+
+
