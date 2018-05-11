@@ -4,8 +4,6 @@ configuration. It potentially can be used in audio video bridging.
 
 The series was tested on AM572x EVM and BBB boards.
 
-Based on master/linux
-
 Testing this series
 ===================
 
@@ -21,14 +19,14 @@ Several prerequisites:
   incoming rate, thus, rate of all incoming tx queues has to be a
   little less
 - Real rates can differ, due to discreetness
-- Map skb-priority to txq is not enouph, also skb-priority to l2 prio
-  has to be done
+- Map skb-priority to txq is not enough, also skb-priority to l2 prio
+  map has to be created
 - Any l2/socket prio (0 - 7) for classes can be used, but for
-  simlicity default values are used 3 and 2
+  simplicity default values are used 3 and 2
 
 Test setup for examples
 =======================
-Oly 2 classes tested: A and B, but checked and can work with more,
+Only 2 classes tested: A and B, but checked and can work with more,
 and in case of 3 classes FIFO1 becomes rated and FIFO0 is used for
 rest.
 
@@ -213,7 +211,7 @@ $ tc -g class show dev eth1
 7)
 // set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc
 // set it +1 Mb for reserve (important!)
-// here only idle sope is important, others arg are ignored
+// here only idle slope is important, others arg are ignored
 // pay attention, real speed can differ a bit due to discreetness
 $ tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 41000 offload 1
@@ -434,7 +432,7 @@ $ tc -g class show dev eth0
 
 7)
 // set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc for Eth0
-// here only idle sope is important, others ignored
+// here only idle slope is important, others ignored
 // pay attention, real speed can differ a bit due to discreetness
 $ tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 41000 offload 1
@@ -493,7 +491,7 @@ $ tc -g class show dev eth1
 
 14)
 // set rate for class A - 31 Mbit (tc0, txq2) using CBS Qdisc for Eth1
-// here only idle sope is important, others ignored
+// here only idle slope is important, others ignored
 // set it +1 Mb for reserve (important!)
 $ tc qdisc replace dev eth1 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 31000 offload 1
@@ -631,5 +629,3 @@ $ tc qdisc del dev eth1 root
 net eth1: Prev FIFO2 is shaped
 net eth1: set FIFO3 bw = 0
 net eth1: set FIFO2 bw = 0
-
-
