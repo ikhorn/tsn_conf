@@ -239,7 +239,7 @@ egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 11)
 // check egress map for vlan 100
-$ cat /proc/net/vlan/eth0.100 eth0.100
+$ cat /proc/net/vlan/eth0.100
 VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
          total frames received            0
           total bytes received            0
@@ -456,7 +456,7 @@ egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 11)
 // check egress map for vlan 100
-$ cat /proc/net/vlan/eth0.100 eth0.100
+$ cat /proc/net/vlan/eth0.100
 VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
          total frames received            0
           total bytes received            0
@@ -516,7 +516,7 @@ egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 18)
 // check egress map for vlan 100
-$ cat /proc/net/vlan/eth1.100 eth0.100
+$ cat /proc/net/vlan/eth1.100
 VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
          total frames received            0
           total bytes received            0
