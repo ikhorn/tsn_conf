@@ -33,22 +33,22 @@ S - shaper is on flag
 || f0 | | f1 | | f2 | | f3 |    \       | f3 | | f2 | | f1 | | f0 ||
 ||tc3 | |tc2 | |tc1 | |tc0 |     \      |tc0 | |tc1 | |tc2 | |tc3 || i
 ||CBS | |CBS | |CBS | |CBS |      \     |CBS | |CBS | |CBS | |CBS || n
-||    | |    | |    | |    |       \    |    | |    | |    | |    ||
-|+----+ +----+ +----+ +----+        \   +----+ +----+ +----+ +----+| s
-|                                    \    ^       ^                | w
-|                                    |    |       |                | i
-|                                    | A  |       |                | t
-|        CBS class A - 41Mb/s        *----+       |                | c
-|        CBS class B - 21Mb/s        |    ^       |                | h
-|                                    | B  |       |                | d
-|                                    +----|-------+                | e
-|                                         |       ^                | v
-|                                         |       |                |
-|                                        A|      B|                | m
-|                                         |       |                | o
-|-----------------------------------------|-------|----------------| d
-|        |            Eth0.100 host side  |       |       |        | e
-|        +--------------------------------|-------|-------+        |
+||    | |    | |    | |    |       |    |    | |    | |    | |    ||
+|+----+ +----+ +----+ +----+       |    +----+ +----+ +----+ +----+| s
+|                                  |     ^ ^    ^ ^                | w
+|                                  |     | |    | |                | i
+|                                  | A   | |    | |                | t
+|        CBS class A - 41Mb/s      +-----+ |    | |                | c
+|        CBS class B - 21Mb/s      |       |    | |                | h
+|                                  | B     |    | |                | d
+|                                  +-------|----+ |                | e
+|                                          |      |                | v
+|                                          |      |                |
+|                                        A |     B|                | m
+|                                          |      |                | o
+|------------------------------------------|------|----------------| d
+|        |            Eth0.100 host side   |      |       |        | e
+|        +---------------------------------|------|-------+        |
 |                                         /\     /\                |
 |                                        /S \   /S \               |
 |      class A - 20Mb/s                 /    \ /    \              |
@@ -56,24 +56,6 @@ S - shaper is on flag
 |                                       +----+ +----+              |
 +------------------------------------------------------------------+
 
-That case seems to work fine.
-At this moment continue checking corner cases but already have one
-correction for AVB patchset:
-
-One of the main things that should be corrected is that not tagged
-packets in switchdev mode go to fifo0, so I'm going to update mqprio
-mapping in the way that always last traffic class is unrated, that
-is for the rest of the traffic including not needed priorities, for
-instance if 3 tc classes then only fifo3 fifo2 and fifo0 leaving fifo1
-unused. If you need 3 rated classes then 4 tc has to be created.
-
-Nice stress test also checked:
-If I send not rated class A to the switch from BBB, the switch shapes
-traffic according to the settings, that seemed work. When I send not
-rated class A from BBB and not rated from the switch host, sometimes
-timeout scheduled on host side for txq, but on laptop receive side
-it was as expected 41Mb/s. So, obvious, correct network configuration
-has to be applied always ).
 
 Switch configuration:
 ====================
