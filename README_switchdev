@@ -2,10 +2,10 @@ Test setup
 ==========
 
 Several prerequisites:
-- ALE is not showen here for simplicity
 - native names are used: eth0, eth1, eth2
-- for simplicity configuration is showen only in one side, but
-  works in both sides.
+- for simplicity, configuration is shown only from Eth2 to Eth1, but
+  works in both directions.
+- same approaches can be used to apply different configurations
 
 BBB - beagle bone black
 tc - traffic class
