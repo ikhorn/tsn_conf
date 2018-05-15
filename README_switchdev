@@ -1,11 +1,16 @@
+This file describe simple example configuration of CBS in switchmode
+
 Test setup
 ==========
 
 Several prerequisites:
-- native names are used: eth0, eth1, eth2
-- for simplicity, configuration is shown only from Eth2 to Eth1, but
-  works in both directions.
-- same approaches can be used to apply different configurations
+- native names are used: eth0, eth1, eth2, can differ depending on
+  udev configuration
+- for simplicity, configuration is shown only:
+  from Eth2 to Eth1 + host on switch, but works in both directions
+  and with more classes
+- same approaches can be used to apply for different configurations
+- this test case was verified with BBB + AM572x switch + PC
 
 BBB - beagle bone black
 tc - traffic class
@@ -13,7 +18,7 @@ S - shaper is on flag
 
 +-------------------------+               +-------------------------+
 |                         |               |                         |
-|          BBB            |               |          Laptop         |
+|          BBB            |               |        Laptop           |
 | class A - 20Mb/s        |               |  ./tsn_listener         |
 | class B - 10Mb/s        |               |                         |
 | vlan 100                |               |                         |
@@ -33,32 +38,31 @@ S - shaper is on flag
 || f0 | | f1 | | f2 | | f3 |    \       | f3 | | f2 | | f1 | | f0 ||
 ||tc3 | |tc2 | |tc1 | |tc0 |     \      |tc0 | |tc1 | |tc2 | |tc3 || i
 ||CBS | |CBS | |CBS | |CBS |      \     |CBS | |CBS | |CBS | |CBS || n
-||    | |    | |    | |    |       |    |    | |    | |    | |    ||
-|+----+ +----+ +----+ +----+       |    +----+ +----+ +----+ +----+| s
-|                                  |     ^ ^    ^ ^                | w
-|                                  |     | |    | |                | i
-|                                  | A   | |    | |                | t
-|        CBS class A - 41Mb/s      +-----+ |    | |                | c
-|        CBS class B - 21Mb/s      |       |    | |                | h
-|                                  | B     |    | |                | d
-|                                  +-------|----+ |                | e
-|                                          |      |                | v
-|                                          |      |                |
-|                                        A |     B|                | m
-|                                          |      |                | o
-|------------------------------------------|------|----------------| d
-|        |            Eth0.100 host side   |      |       |        | e
-|        +---------------------------------|------|-------+        |
-|                                         /\     /\                |
-|                                        /S \   /S \               |
-|      class A - 20Mb/s                 /    \ /    \              |
-|      class B - 10Mb/s                 |dma7| |dma6|              |
-|                                       +----+ +----+              |
+|+----+ +----+ +----+ +----+      |     +----+ +----+ +----+ +----+|
+|                                 |      ^  ^   ^  ^          ^  ^ | s
+|                                 |      |  |   |  |          |  | | w
+|                                 | A    |  |   |  |          |  | | i
+|        CBS class A - 41Mb/s     *------+  |   |  |          |  | | t
+|        CBS class B - 21Mb/s     |         |   |  |          |  | | c
+|                                 | B       |   |  |          |  | | h
+|                                 *---------|---+  |      +---+  | | d
+|                                 |         |      |      | rest | | e
+|                                 *---------|------|------|------+ | v
+|                                           |      |      |        |
+|                                          A|     B|      |        | m
+|-------------------------------------------|------|------|--------| o
+|    |                Eth0.100 host side    |      |      |   |    | d
+|    +--------------------------------------|------|------|---+    | e
+|                                          /\     /\     /\        |
+|                                         /S \   /S \   /S \       |
+|      class A - 20Mb/s                  /    \ /    \ /    \      |
+|      class B - 10Mb/s                  |dma7| |dma6| |dma5|      |
+|                                        +----+ +----+ +----+      |
 +------------------------------------------------------------------+
 
 
-Switch configuration:
-====================
+AM572x switch configuration:
+============================
 0)
 $ modprobe br_netfilter
 
@@ -83,6 +87,7 @@ $ bridge vlan add dev eth1 vid 100 master
 
 1)
 // Add 4 tx queues, for interface Eth0, and 1 tx queue for Eth1
+// Can be skipped if no need to send rated traffic from host
 $ ethtool -L eth0 rx 1 tx 5
 rx unmodified, ignoring
 
@@ -104,6 +109,7 @@ Combined:       0
 3)
 // TX queues must be rated starting from 0, so set bws for tx0 and tx1
 // Set rates 20 and 10 Mb/s appropriately.
+// Can be skipped if no need to send rated traffic from host
 // Pay attention, real speed can differ a bit due to discreetness.
 // Leave last 2 tx queues not rated.
 $ echo 20 > /sys/class/net/eth0/queues/tx-0/tx_maxrate
@@ -127,19 +133,16 @@ $ tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 
 5a)
-// This step's required only in case dual-emac is on and Eth1 interface is used.
-// Assign all traffic from interface Eth1 to separate queue in order to not
-// mix it with traffic from interface Eth0. As it's supposed that for AVB,
-// tagged frames are used with L2 prio set for Eth0, that means they can have
-// higher prio compared with not tagged packets from Eth1. To eliminate this,
-// use separate channel to send packets from Eth1.
-// So all prio -> tc0 and tc0 -> txq4
-// Pay attention, here hw 0, so we still use same default configuration in hw
+// As two interface sharing same set of tx queues, assign all traffic
+// coming to interface Eth1 to separate queue in order to not mix it
+// with traffic from interface Eth0, so use separate txq to send
+// packets to Eth1, all prio -> tc0 and tc0 -> txq4
+// Here hw 0, so here still default configuration for eth1 in hw
 $ tc qdisc replace dev eth1 handle 100: parent root mqprio num_tc 1 \
 map 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 queues 1@4 hw 0
 
 6)
-// Check classes settings
+// Check classes settings for eth0 and eth1
 $ tc -g class show dev eth0
 +---(100:ffe2) mqprio
 |    +---(100:3) mqprio
@@ -151,15 +154,13 @@ $ tc -g class show dev eth0
 +---(100:ffe0) mqprio
      +---(100:1) mqprio
 
-6a)
-// This step is needed only in case dual-emac is on and Eth1 interface is used.
-// Check classes settings for Eth1
 $ tc -g class show dev eth1
 +---(100:ffe0) mqprio
      +---(100:5) mqprio
 
 7)
 // set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc
+// includes rate from host + rate from BBB
 // set it +1 Mb for reserve (important!)
 // here only idle slope is important, others arg are ignored
 // pay attention, real speed can differ a bit due to discreetness
@@ -169,6 +170,7 @@ net eth0: set FIFO3 bw = 50
 
 8)
 // set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc:
+// includes rate from host + rate from BBB
 // set it +1 Mb for reserve (important!)
 $ tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 21000 offload 1
@@ -190,29 +192,24 @@ egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 11)
 // check egress map for vlan 100
 $ cat /proc/net/vlan/eth1.100
-eth1.100  VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
-         total frames received            0
-          total bytes received            0
-      Broadcast/Multicast Rcvd            0
-
-      total frames transmitted           41
-       total bytes transmitted         7573
-Device: eth0
+[...]
 INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 12)
 // run appropriate tools with socket option "SO_PRIORITY"
-// to 3 for class A and to 2 for class B
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p3 -s 1500&
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p2 -s 1500&
+// to 3 for class A or/and to 2 for class B
+$ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p3 -s 1500&
+$ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p2 -s 1500&
 
 BBB configuration
 =================
+1)
 // increase number of tx queues for eth interface
 $ ethtool -L eth0 rx 1 tx 4
 rx unmodified, ignoring
 
+2)
 // Check if num of queues is set correctly:
 $ ethtool -l eth0
 Channel parameters for eth0:
@@ -227,43 +224,53 @@ TX:             4
 Other:          0
 Combined:       0
 
+3)
 // set rate limitation for tx queues 0 and 1:
 $ echo 20 > /sys/class/net/eth0/queues/tx-0/tx_maxrate
 $ echo 10 > /sys/class/net/eth0/queues/tx-1/tx_maxrate
 
-// Check maximum rate of tx (cpdma) queues:
+4)
+// Check maximum rate of tx (cpdma channels) queues:
 $ cat /sys/class/net/eth0/queues/tx-*/tx_maxrate
 20
 10
 0
 0
 
+5)
 // create sk_prio->tc->txq mapping
 // map sk_prio: 3pri -> tc0, 2pri -> tc1, (0,1,4-7) -> tc3
 // map tc to txq: tc0 -> txq0, tc1 -> txq1, tc2 -> (txq2, txq3)
 $ ./tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
         map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 
+6)
 // set rate limitation for fifo shapers (traffic classes 0 and 1)
 // set rate limitation for tc0
 $ ./tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 hicredit 30 \
 sendslope -980000 idleslope 21000 offload 1
 net eth0: set FIFO3 bw = 21
 
+7)
 // set rate limitation for tc1
 $ ./tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 hicredit 30 \
 sendslope -980000 idleslope 11000 offload 1
 net eth0: set FIFO3 bw = 11
 
+8)
 // add vlan with vid 100
 $ ip link add link eth0 name eth0.100 type vlan id 100
 8021q: 802.1Q VLAN Support v1.8
 8021q: adding VLAN 0 to HW filter on device eth0
 net eth0: Adding vlanid 100 to vlan filter
 
+9)
 // create sk_prio->L2 mapping
 $ ip link set eth0.100 type vlan \
 egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
-// run talker
-$ ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p 2 -s 1500
+10)
+// run appropriate tools with socket option "SO_PRIORITY"
+// to 3 for class A or/and to 2 for class B
+$ ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
+$ ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
