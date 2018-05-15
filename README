@@ -185,6 +185,7 @@ map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 // higher prio compared with not tagged packets from Eth1. To eliminate this,
 // use separate channel to send packets from Eth1.
 // So all prio -> tc0 and tc0 -> txq4
+// Here hw 0, so here still default configuration for eth1 in hw
 $ tc qdisc replace dev eth1 handle 100: parent root mqprio num_tc 1 \
 map 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 queues 1@4 hw 0
 
