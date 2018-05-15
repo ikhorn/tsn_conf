@@ -4,32 +4,28 @@ configuration. It potentially can be used in audio video bridging.
 
 The series was tested on AM572x EVM and BBB boards.
 
-Testing this series
+Test setup
 ===================
 
-Lets consider configuration on two examples with AM52xx EVM running
-cpsw driver in dual_emac mode.
+Under consideration two examples with AM52xx EVM running cpsw driver
+in dual_emac mode.
 
 Several prerequisites:
 - TX queues must be rated starting from txq0 that has highest priority
-- Traffic classes are used starting from tc0, that has highest
-  priority
-- CBS shapers must be used with rated queues
-- The Bandwidth for CBS shapers has to be set a little bit more then
-  incoming rate, thus, rate of all incoming tx queues has to be a
-  little less
+- Traffic classes are used starting from 0, that has highest priority
+- CBS shapers should be used with rated queues
+- The bandwidth for CBS shapers has to be set a little bit more then
+  potential incoming rate, thus, rate of all incoming tx queues has
+  to be a little less
 - Real rates can differ, due to discreetness
 - Map skb-priority to txq is not enough, also skb-priority to l2 prio
-  map has to be created
+  map has to be created with ip or vconfig tool
 - Any l2/socket prio (0 - 7) for classes can be used, but for
   simplicity default values are used 3 and 2
+- only 2 classes tested: A and B, but checked and can work with more.
 
 Test setup for examples
 =======================
-Only 2 classes tested: A and B, but checked and can work with more,
-and in case of 3 classes FIFO1 becomes rated and FIFO0 is used for
-rest.
-
                                     +-------------------------------+
                                     |--+                            |
                                     |  |      Workstation0          |
@@ -178,13 +174,10 @@ $ tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 
 5a)
-// This step's required only in case dual-emac is on and Eth1 interface is used.
-// Assign all traffic from interface Eth1 to separate queue in order to not
-// mix it with traffic from interface Eth0. As it's supposed that for AVB,
-// tagged frames are used with L2 prio set for Eth0, that means they can have
-// higher prio compared with not tagged packets from Eth1. To eliminate this,
-// use separate channel to send packets from Eth1.
-// So all prio -> tc0 and tc0 -> txq4
+// As two interface sharing same set of tx queues, assign all traffic
+// coming to interface Eth1 to separate queue in order to not mix it
+// with traffic from interface Eth0, so use separate txq to send
+// packets to Eth1, so all prio -> tc0 and tc0 -> txq4
 // Here hw 0, so here still default configuration for eth1 in hw
 $ tc qdisc replace dev eth1 handle 100: parent root mqprio num_tc 1 \
 map 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 queues 1@4 hw 0
@@ -202,31 +195,28 @@ $ tc -g class show dev eth0
 +---(100:ffe0) mqprio
      +---(100:1) mqprio
 
-6a)
-// This step is needed only in case dual-emac is on and Eth1 interface is used.
-// Check classes settings for Eth1
 $ tc -g class show dev eth1
 +---(100:ffe0) mqprio
      +---(100:5) mqprio
 
 7)
-// set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc
-// set it +1 Mb for reserve (important!)
+// Set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc
+// Set it +1 Mb for reserve (important!)
 // here only idle slope is important, others arg are ignored
-// pay attention, real speed can differ a bit due to discreetness
+// Pay attention, real speed can differ a bit due to discreetness
 $ tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 41000 offload 1
 net eth0: set FIFO3 bw = 50
 
 8)
-// set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc:
-// set it +1 Mb for reserve (important!)
+// Set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc:
+// Set it +1 Mb for reserve (important!)
 $ tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 21000 offload 1
 net eth0: set FIFO2 bw = 30
 
 9)
-// create vlan 100 to map sk->priority to vlan qos
+// Create vlan 100 to map sk->priority to vlan qos
 $ ip link add link eth0 name eth0.100 type vlan id 100
 8021q: 802.1Q VLAN Support v1.8
 8021q: adding VLAN 0 to HW filter on device eth0
@@ -234,59 +224,25 @@ $ ip link add link eth0 name eth0.100 type vlan id 100
 net eth0: Adding vlanid 100 to vlan filter
 
 10)
-// map skb->priority to L2 prio, 1 to 1
+// Map skb->priority to L2 prio, 1 to 1
 $ ip link set eth0.100 type vlan \
 egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 11)
-// check egress map for vlan 100
+// Check egress map for vlan 100
 $ cat /proc/net/vlan/eth0.100
-VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
-         total frames received            0
-          total bytes received            0
-      Broadcast/Multicast Rcvd            0
-
-      total frames transmitted           45
-       total bytes transmitted         8590
-Device: eth0
+[...]
 INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 12)
-// run appropriate tools with socket option "SO_PRIORITY"
-// to 3 for class A and to 2 for class B
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
+// Run appropriate tools with socket option "SO_PRIORITY"
+// to 3 for class A and/or to 2 for class B
+./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
+./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
 
 13)
-// Check statistic and overall parameters
-$ tc -s qdisc ls dev eth0
-qdisc mqprio 100: root  tc 3 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues:(0:0) 
-(1:1) (2:3) Sent 49024710 bytes 32415 pkt (dropped 0, overlimits 0 requeues 0) 
-backlog 0b 0p requeues 0 qdisc cbs 8001: parent 100:1 hicredit 30 locredit -1470 
-sendslope -980000 idleslope 41000 offload 1 Sent 30543436 bytes 20174 pkt 
-(dropped 0, overlimits 0 requeues 0) backlog 0b 0p requeues 0 qdisc fq_codel 0: 
-parent 100:5 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms 
-memory_limit 32Mb ecn Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
-backlog 0b 0p requeues 0 maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 
-0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:4 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 3888 bytes 18 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:3 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 3558 bytes 21 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc cbs 8002: parent 100:2 hicredit 30 locredit -1470 sendslope -980000 idleslope 21000 offload 1 
- Sent 18473828 bytes 12202 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-
- 14)
-// Restore default configuration
+// Restore default configuration if needed
 $ tc qdisc del dev eth0 root
 net eth0: Prev FIFO2 is shaped
 net eth0: set FIFO3 bw = 0
@@ -391,8 +347,8 @@ Combined:       0
 // TX queues must be rated starting from 0, so set bws for tx0 and tx1 for Eth0
 // and for tx2 and tx3 for Eth1. That is, rates 40 and 20 Mb/s appropriately
 // for Eth0 and 30 and 10 Mb/s for Eth1.
-// Pay attention, real speed can differ a bit due to discreetness.
-// Leave last 4 tx queues as not rated.
+// Real speed can differ a bit due to discreetness
+// Leave last 4 tx queues as not rated
 $ echo 40 > /sys/class/net/eth0/queues/tx-0/tx_maxrate
 $ echo 20 > /sys/class/net/eth0/queues/tx-1/tx_maxrate
 $ echo 30 > /sys/class/net/eth1/queues/tx-2/tx_maxrate
@@ -432,40 +388,33 @@ $ tc -g class show dev eth0
      +---(100:1) mqprio
 
 7)
-// set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc for Eth0
+// Set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc for Eth0
 // here only idle slope is important, others ignored
-// pay attention, real speed can differ a bit due to discreetness
+// Real speed can differ a bit due to discreetness
 $ tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 41000 offload 1
 net eth0: set FIFO3 bw = 50
 
 8)
-// set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc for Eth0
+// Set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc for Eth0
 $ tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 21000 offload 1
 net eth0: set FIFO2 bw = 30
 
 9)
-// create vlan 100 to map sk->priority to vlan qos for Eth0
+// Create vlan 100 to map sk->priority to vlan qos for Eth0
 $ ip link add link eth0 name eth0.100 type vlan id 100
 net eth0: Adding vlanid 100 to vlan filter
 
 10)
-// map skb->priority to L2 prio for Eth0.100, one to one
+// Map skb->priority to L2 prio for Eth0.100, one to one
 $ ip link set eth0.100 type vlan \
 egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 11)
-// check egress map for vlan 100
+// Check egress map for vlan 100
 $ cat /proc/net/vlan/eth0.100
-VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
-         total frames received            0
-          total bytes received            0
-      Broadcast/Multicast Rcvd            0
-
-      total frames transmitted           45
-       total bytes transmitted         8590
-Device: eth0
+[...]
 INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
@@ -491,136 +440,47 @@ $ tc -g class show dev eth1
      +---(100:3) mqprio
 
 14)
-// set rate for class A - 31 Mbit (tc0, txq2) using CBS Qdisc for Eth1
+// Set rate for class A - 31 Mbit (tc0, txq2) using CBS Qdisc for Eth1
 // here only idle slope is important, others ignored
-// set it +1 Mb for reserve (important!)
+// Set it +1 Mb for reserve (important!)
 $ tc qdisc replace dev eth1 parent 100:1 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 31000 offload 1
 net eth1: set FIFO3 bw = 31
 
 15)
-// set rate for class B - 11 Mbit (tc1, txq3) using CBS Qdisc for Eth1
-// set it +1 Mb for reserve (important!)
+// Set rate for class B - 11 Mbit (tc1, txq3) using CBS Qdisc for Eth1
+// Set it +1 Mb for reserve (important!)
 $ tc qdisc replace dev eth1 parent 100:2 cbs locredit -1470 \
 hicredit 30 sendslope -980000 idleslope 11000 offload 1
 net eth1: set FIFO2 bw = 11
 
 16)
-// create vlan 100 to map sk->priority to vlan qos for Eth1
+// Create vlan 100 to map sk->priority to vlan qos for Eth1
 $ ip link add link eth1 name eth1.100 type vlan id 100
 net eth1: Adding vlanid 100 to vlan filter
 
 17)
-// map skb->priority to L2 prio for Eth1.100, one to one
+// Map skb->priority to L2 prio for Eth1.100, one to one
 $ ip link set eth1.100 type vlan \
 egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 18)
-// check egress map for vlan 100
+// Check egress map for vlan 100
 $ cat /proc/net/vlan/eth1.100
-VID: 100       REORDER_HDR: 1  dev->priv_flags: 1021
-         total frames received            0
-          total bytes received            0
-      Broadcast/Multicast Rcvd            0
-
-      total frames transmitted           45
-       total bytes transmitted         8590
-Device: eth0
+[...]
 INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 19)
-// run appropriate tools with socket option "SO_PRIORITY" to 3
+// Run appropriate tools with socket option "SO_PRIORITY" to 3
 // for class A and to 2 for class B. For both interfaces
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
-// ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
-// ./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p2 -s 1500&
-// ./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p3 -s 1500&
-
-20)
-// Check statistic and overall parameters
-$ tc -s qdisc ls dev eth0
-qdisc mqprio 100: root  tc 3 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues:(0:0) 
-(1:1) (4:5) Sent 299817247 bytes 198080 pkt (dropped 0, overlimits 0 requeues 0) 
-backlog 125662b 83p requeues 0 qdisc cbs 8001: parent 100:1 hicredit 30 locredit 
--1470 sendslope -980000 idleslope 41000 offload 1 Sent 182508158 bytes 120547 
-pkt (dropped 0, overlimits 0 requeues 0) backlog 59046b 39p requeues 0 qdisc 
-fq_codel 0: parent 100:8 limit 10240p flows 1024 quantum 1514 target 5.0ms 
-interval 100.0ms memory_limit 32Mb ecn Sent 0 bytes 0 pkt (dropped 0, overlimits 
-0 requeues 0) backlog 0b 0p requeues 0 maxpacket 0 drop_overlimit 0 
-new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:7 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:6 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 6927 bytes 24 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:5 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 5012 bytes 34 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:4 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:3 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc cbs 8002: parent 100:2 hicredit 30 locredit -1470 sendslope -980000 idleslope 21000 offload 1 
- Sent 117297150 bytes 77475 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 66616b 44p requeues 0 
-
-$ tc -s qdisc ls dev eth1
-qdisc mqprio 100: root  tc 3 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues:(2:2) 
-(3:3) (6:7) Sent 496763397 bytes 328171 pkt (dropped 0, overlimits 0 requeues 0) 
-backlog 166540b 110p requeues 0 qdisc fq_codel 0: parent 100:8 limit 10240p 
-flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn Sent 
-7244 bytes 44 pkt (dropped 0, overlimits 0 requeues 0) backlog 0b 0p requeues 0 
-maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:7 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 3669 bytes 21 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:6 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:5 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:2 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc fq_codel 0: parent 100:1 limit 10240p flows 1024 quantum 1514 target 5.0ms interval 100.0ms memory_limit 32Mb ecn 
- Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 0b 0p requeues 0 
-  maxpacket 0 drop_overlimit 0 new_flow_count 0 ecn_mark 0
-  new_flows_len 0 old_flows_len 0
-qdisc cbs 8003: parent 100:3 hicredit 30 locredit -1470 sendslope -980000 idleslope 31000 offload 1 
- Sent 383078336 bytes 253024 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 101438b 67p requeues 0 
-qdisc cbs 8004: parent 100:4 hicredit 30 locredit -1470 sendslope -980000 idleslope 11000 offload 1 
- Sent 113675662 bytes 75083 pkt (dropped 0, overlimits 0 requeues 0) 
- backlog 63588b 42p requeues 0 
+./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
+./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
+./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p2 -s 1500&
+./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p3 -s 1500&
 
 21)
-// Restore default configuration
+// Restore default configuration if needed
 $ tc qdisc del dev eth0 root
 net eth0: Prev FIFO2 is shaped
 net eth0: set FIFO3 bw = 0
