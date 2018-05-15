@@ -224,3 +224,64 @@ EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 // to 3 for class A and to 2 for class B
 // ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p3 -s 1500&
 // ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p2 -s 1500&
+
+BBB configuration
+=================
+// increase number of tx queues for eth interface
+$ ethtool -L eth0 rx 1 tx 4
+rx unmodified, ignoring
+
+// Check if num of queues is set correctly:
+$ ethtool -l eth0
+Channel parameters for eth0:
+Pre-set maximums:
+RX:             8
+TX:             8
+Other:          0
+Combined:       0
+Current hardware settings:
+RX:             1
+TX:             4
+Other:          0
+Combined:       0
+
+// set rate limitation for tx queues 0 and 1:
+$ echo 20 > /sys/class/net/eth0/queues/tx-0/tx_maxrate
+$ echo 10 > /sys/class/net/eth0/queues/tx-1/tx_maxrate
+
+// Check maximum rate of tx (cpdma) queues:
+$ cat /sys/class/net/eth0/queues/tx-*/tx_maxrate
+20
+10
+0
+0
+
+// create sk_prio->tc->txq mapping
+// map sk_prio: 3pri -> tc0, 2pri -> tc1, (0,1,4-7) -> tc3
+// map tc to txq: tc0 -> txq0, tc1 -> txq1, tc2 -> (txq2, txq3)
+$ ./tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
+        map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
+
+// set rate limitation for fifo shapers (traffic classes 0 and 1)
+// set rate limitation for tc0
+$ ./tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 hicredit 30 \
+sendslope -980000 idleslope 21000 offload 1
+net eth0: set FIFO3 bw = 21
+
+// set rate limitation for tc1
+$ ./tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 hicredit 30 \
+sendslope -980000 idleslope 11000 offload 1
+net eth0: set FIFO3 bw = 11
+
+// add vlan with vid 100
+$ ip link add link eth0 name eth0.100 type vlan id 100
+8021q: 802.1Q VLAN Support v1.8
+8021q: adding VLAN 0 to HW filter on device eth0
+net eth0: Adding vlanid 100 to vlan filter
+
+// create sk_prio->L2 mapping
+$ ip link set eth0.100 type vlan \
+egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
+
+// run talker
+$ ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p 2 -s 1500
