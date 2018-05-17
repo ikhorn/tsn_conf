@@ -198,8 +198,9 @@ INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 12)
-// run appropriate tools with socket option "SO_PRIORITY"
+// run your appropriate tools with socket option "SO_PRIORITY"
 // to 3 for class A or/and to 2 for class B
+// (I took at https://www.spinics.net/lists/netdev/msg460869.html)
 $ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p3 -s 1500&
 $ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p2 -s 1500&
 
@@ -279,7 +280,8 @@ $ ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
 Workstation configuration
 ====================
 
-// run listener
+// run your listener
+// (I took at https://www.spinics.net/lists/netdev/msg460869.html)
 ./tsn_listener -d 18:03:73:66:87:42 -i enp5s0 -s 1500
 Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps

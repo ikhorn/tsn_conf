@@ -120,7 +120,7 @@ S - shaper configured
 |   |      |      | |                 |                            | d
 | +----+ +----+ +----+p            p+----+                         | r
 | |    | |    | |    |o            o|    |                         | i
-| | f3 | | f2 | | f1 |r            r| f0 |                         | v
+| | f3 | | f2 | | f0 |r            r| f0 |                         | v
 | |tc0 | |tc1 | |tc2 |t            t|tc0 |                         | e
 | \CBS / \CBS / \CBS /1            2\CBS /                         | r
 |  \S /   \S /   \  /                \  /                          |
@@ -236,8 +236,9 @@ INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 12)
-// Run appropriate tools with socket option "SO_PRIORITY"
+// Run your appropriate tools with socket option "SO_PRIORITY"
 // to 3 for class A and/or to 2 for class B
+// (I took at https://www.spinics.net/lists/netdev/msg460869.html)
 ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p3 -s 1500&
 ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
 
@@ -247,6 +248,24 @@ $ tc qdisc del dev eth0 root
 net eth0: Prev FIFO2 is shaped
 net eth0: set FIFO3 bw = 0
 net eth0: set FIFO2 bw = 0
+
+22)
+// run your listener on workstation
+// (I took at https://www.spinics.net/lists/netdev/msg460869.html)
+./tsn_listener -d 18:03:73:66:87:42 -i enp5s0 -s 1500
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39000 kbps
 
 *********************************************************************
 *********************************************************************
@@ -314,7 +333,7 @@ Example 2: Two port tx AVB configuration scheme for target board
 |   |      |      | |                          | |      |      |   | d
 | +----+ +----+ +----+p                      p+----+ +----+ +----+ | r
 | |    | |    | |    |o                      o|    | |    | |    | | i
-| | f3 | | f2 | | f1 |r        CPSW          r| f3 | | f2 | | f1 | | v
+| | f3 | | f2 | | f0 |r        CPSW          r| f3 | | f2 | | f0 | | v
 | |tc0 | |tc1 | |tc2 |t                      t|tc0 | |tc1 | |tc2 | | e
 | \CBS / \CBS / \CBS /1                      2\CBS / \CBS / \CBS / | r
 |  \S /   \S /   \  /                          \S /   \S /   \  /  |
@@ -490,3 +509,21 @@ $ tc qdisc del dev eth1 root
 net eth1: Prev FIFO2 is shaped
 net eth1: set FIFO3 bw = 0
 net eth1: set FIFO2 bw = 0
+
+22)
+// run your listeners on workstations
+// (I took at https://www.spinics.net/lists/netdev/msg460869.html)
+./tsn_listener -d 18:03:73:66:87:42 -i enp5s0 -s 1500
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39012 kbps
+Receiving data rate: 39000 kbps
