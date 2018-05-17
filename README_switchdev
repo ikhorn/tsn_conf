@@ -165,16 +165,16 @@ $ tc -g class show dev eth1
 // set it +1 Mb for reserve (important!)
 // here only idle slope is important, others arg are ignored
 // pay attention, real speed can differ a bit due to discreetness
-$ tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 \
-hicredit 30 sendslope -980000 idleslope 41000 offload 1
+$ tc qdisc add dev eth0 parent 100:1 cbs locredit -1438 \
+hicredit 62 sendslope -959000 idleslope 41000 offload 1
 net eth0: set FIFO3 bw = 50
 
 8)
 // set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc:
 // includes rate from host + rate from BBB
 // set it +1 Mb for reserve (important!)
-$ tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 \
-hicredit 30 sendslope -980000 idleslope 21000 offload 1
+$ tc qdisc add dev eth0 parent 100:2 cbs locredit -1468 \
+hicredit 65 sendslope -979000 idleslope 21000 offload 1
 net eth0: set FIFO2 bw = 30
 
 9)
@@ -248,15 +248,15 @@ $ ./tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
 6)
 // set rate limitation for fifo shapers (traffic classes 0 and 1)
 // set rate limitation for tc0
-$ ./tc qdisc replace dev eth0 parent 100:1 cbs locredit -1470 hicredit 30 \
-sendslope -980000 idleslope 21000 offload 1
-net eth0: set FIFO3 bw = 21
+$ tc qdisc add dev eth0 parent 100:2 cbs locredit -1470 \
+hicredit 65 sendslope -979000 idleslope 21000 offload 1
+net eth0: set FIFO2 bw = 30
 
 7)
 // set rate limitation for tc1
-$ ./tc qdisc replace dev eth0 parent 100:2 cbs locredit -1470 hicredit 30 \
-sendslope -980000 idleslope 11000 offload 1
-net eth0: set FIFO3 bw = 11
+$ tc qdisc add dev eth1 parent 100:2 cbs locredit -1483 \
+hicredit 34 sendslope -989000 idleslope 11000 offload 1
+net eth1: set FIFO2 bw = 11
 
 8)
 // add vlan with vid 100
