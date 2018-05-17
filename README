@@ -1,11 +1,18 @@
-The cpsw has 3 CBS shapers for each external ports. This patch series
-adds MQPRIO and CBS Qdisc offload for cpsw driver allowing their
-configuration. It potentially can be used in audio video bridging.
+* Texas Instruments CPSW ethernet driver
 
-The series was tested on AM572x EVM and BBB boards.
+Multiqueue & CBS & MQPRIO
+=====================================================================
+=====================================================================
+
+The cpsw has 3 CBS shapers for each external ports. This document
+describes MQPRIO and CBS Qdisc offload configuration for cpsw driver
+based on examples. It potentially can be used in audio video bridging
+(AVB) and time sensitive networking (TSN).
+
+The following examples was tested on AM572x EVM and BBB boards.
 
 Test setup
-===================
+==========
 
 Under consideration two examples with AM52xx EVM running cpsw driver
 in dual_emac mode.
@@ -21,7 +28,7 @@ Several prerequisites:
 - Map skb-priority to txq is not enough, also skb-priority to l2 prio
   map has to be created with ip or vconfig tool
 - Any l2/socket prio (0 - 7) for classes can be used, but for
-  simplicity default values are used 3 and 2
+  simplicity default values are used: 3 and 2
 - only 2 classes tested: A and B, but checked and can work with more.
 
 Test setup for examples
@@ -30,9 +37,9 @@ Test setup for examples
                                     |--+                            |
                                     |  |      Workstation0          |
                                     |E |  MAC 18:03:73:66:87:42     |
-+--------------------+----+---+  +--|t |                            |
++-----------------------------+  +--|t |                            |
 |                    | 1  | E |  |  |h |./tsn_listener -d \         |
-|  Target board:     | 0  | t +--+  |0 | 18:03:73:66:87:42 -i eth0 \|
+|  Target board:     | 0  | t |--+  |0 | 18:03:73:66:87:42 -i eth0 \|
 |  AM572x EVM        | 0  | h |     |  | -s 1500                    |
 |                    | 0  | 0 |     |--+                            |
 |  Only 2 classes:   |Mb  +---|     +-------------------------------+
@@ -40,15 +47,14 @@ Test setup for examples
 |                    |    +---|     +-------------------------------+
 |                    | 1  | E |     |--+                            |
 |                    | 0  | t |     |  |      Workstation1          |
-|                    | 0  | h +--+  |E |  MAC 20:cf:30:85:7d:fd     |
+|                    | 0  | h |--+  |E |  MAC 20:cf:30:85:7d:fd     |
 |                    |Mb  | 1 |  +--|t |                            |
-+-------------------------+---+     |h |./tsn_listener -d \         |
++-----------------------------+     |h |./tsn_listener -d \         |
                                     |0 | 20:cf:30:85:7d:fd -i eth0 \|
                                     |  | -s 1500                    |
                                     |--+                            |
                                     +-------------------------------+
 
-*********************************************************************
 *********************************************************************
 *********************************************************************
 *********************************************************************
@@ -102,7 +108,7 @@ S - shaper configured
 |   \/     \/     \/     \/                       \/               |
 | +-|------|------|------|--+                  +--|--------------+ |
 | | |      |      |      |  | Eth0.100         |  |     Eth1     | |
-+---|------|------|------|---------------------+--|----------------+
++---|------|------|------|------------------------|----------------+
     |      |      |      |                        |
     p      p      p      p                        |
     3      2      0-1, 4-7  <- L2 priority        |
@@ -267,7 +273,6 @@ Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps
 Receiving data rate: 39000 kbps
 
-*********************************************************************
 *********************************************************************
 *********************************************************************
 *********************************************************************
