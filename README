@@ -29,7 +29,8 @@ Several prerequisites:
   map has to be created with ip or vconfig tool
 - Any l2/socket prio (0 - 7) for classes can be used, but for
   simplicity default values are used: 3 and 2
-- only 2 classes tested: A and B, but checked and can work with more.
+- only 2 classes tested: A and B, but checked and can work with more,
+  maximum allowed 4, but only for 3 rate can be set.
 
 Test setup for examples
 =======================
