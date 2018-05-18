@@ -249,13 +249,6 @@ EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 ./tsn_talker -d 18:03:73:66:87:42 -i eth0.100 -p2 -s 1500&
 
 13)
-// Restore default configuration if needed
-$ tc qdisc del dev eth0 root
-net eth0: Prev FIFO2 is shaped
-net eth0: set FIFO3 bw = 0
-net eth0: set FIFO2 bw = 0
-
-22)
 // run your listener on workstation
 // (I took at https://www.spinics.net/lists/netdev/msg460869.html)
 ./tsn_listener -d 18:03:73:66:87:42 -i enp5s0 -s 1500
@@ -272,6 +265,16 @@ Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps
 Receiving data rate: 39000 kbps
+
+14)
+// Restore default configuration if needed
+$ ip link del eth0.100
+$ tc qdisc del dev eth1 root
+$ tc qdisc del dev eth0 root
+net eth0: Prev FIFO2 is shaped
+net eth0: set FIFO3 bw = 0
+net eth0: set FIFO2 bw = 0
+$ ethtool -L eth0 rx 1 tx 1
 
 *********************************************************************
 *********************************************************************
@@ -503,19 +506,7 @@ EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 ./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p2 -s 1500&
 ./tsn_talker -d 20:cf:30:85:7d:fd -i eth1.100 -p3 -s 1500&
 
-21)
-// Restore default configuration if needed
-$ tc qdisc del dev eth0 root
-net eth0: Prev FIFO2 is shaped
-net eth0: set FIFO3 bw = 0
-net eth0: set FIFO2 bw = 0
-
-$ tc qdisc del dev eth1 root
-net eth1: Prev FIFO2 is shaped
-net eth1: set FIFO3 bw = 0
-net eth1: set FIFO2 bw = 0
-
-22)
+20)
 // run your listeners on workstations
 // (I took at https://www.spinics.net/lists/netdev/msg460869.html)
 ./tsn_listener -d 18:03:73:66:87:42 -i enp5s0 -s 1500
@@ -532,3 +523,17 @@ Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps
 Receiving data rate: 39012 kbps
 Receiving data rate: 39000 kbps
+
+21)
+// Restore default configuration if needed
+$ ip link del eth1.100
+$ ip link del eth0.100
+$ tc qdisc del dev eth1 root
+net eth1: Prev FIFO2 is shaped
+net eth1: set FIFO3 bw = 0
+net eth1: set FIFO2 bw = 0
+$ tc qdisc del dev eth0 root
+net eth0: Prev FIFO2 is shaped
+net eth0: set FIFO3 bw = 0
+net eth0: set FIFO2 bw = 0
+$ ethtool -L eth0 rx 1 tx 1
