@@ -472,14 +472,14 @@ $ tc -g class show dev eth1
 // Set it +1 Mb for reserve (important!)
 $ tc qdisc add dev eth1 parent 100:1 cbs locredit -1453 \
 hicredit 47 sendslope -969000 idleslope 31000 offload 1
-net eth1: set FIFO3 bw = 31
+net eth1: set FIFO3 bw = 40
 
 15)
 // Set rate for class B - 11 Mbit (tc1, txq3) using CBS Qdisc for Eth1
 // Set it +1 Mb for reserve (important!)
 $ tc qdisc add dev eth1 parent 100:2 cbs locredit -1483 \
 hicredit 34 sendslope -989000 idleslope 11000 offload 1
-net eth1: set FIFO2 bw = 11
+net eth1: set FIFO2 bw = 20
 
 16)
 // Create vlan 100 to map sk->priority to vlan qos for Eth1
