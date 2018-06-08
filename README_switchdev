@@ -52,7 +52,7 @@ S - shaper is on flag
 |                                           |      |      |        |
 |                                          A|     B|      |        | m
 |-------------------------------------------|------|------|--------| o
-|                     Eth1.100 host side    |      |      |        | d
+|                br0.100(eth1) host side    |      |      |        | d
 |                                           |      |      |        | e
 |                                          /\     /\     /\        |
 |                                         /S \   /S \   /S \       |
@@ -72,30 +72,28 @@ $ ip link add name br0 type bridge
 $ ip link set dev br0 type bridge ageing_time 1000
 $ ip link set dev br0 type bridge vlan_filtering 1
 
-$ ip link set dev eth1 up
 $ ip link set dev eth0 up
-$ ip link set dev eth2 up
+$ ip link set dev eth1 up
 
 $ ip link set dev eth0 master br0
 $ ip link set dev eth1 master br0
-$ ip link set dev eth2 master br0
 
-$ ip link set br0 address 74:da:ea:47:7d:3c
+$ ip link set br0 up
 
-$ ifconfig br0 up
-
+$ bridge vlan add dev eth0 vid 100 master
 $ bridge vlan add dev eth1 vid 100 master
+$ bridge vlan add dev br0 vid 100 pvid untagged self
 
 1)
-// Add 4 tx queues, for interface Eth1, and 1 tx queue for Eth2
-// Can be skipped if no need to send rated traffic from host
-$ ethtool -L eth1 rx 1 tx 5
+// Add 4 tx queues, for interface Eth0, and 1 tx queue for Eth1
+// Can be skipped if no need to send rated traffic from the host
+$ ethtool -L eth0 rx 1 tx 5
 rx unmodified, ignoring
 
 2)
 // Check if num of queues is set correctly:
-$ ethtool -l eth1
-Channel parameters for eth1:
+$ ethtool -l eth0
+Channel parameters for eth0:
 Pre-set maximums:
 RX:             8
 TX:             8
@@ -113,12 +111,12 @@ Combined:       0
 // Can be skipped if no need to send rated traffic from host
 // Pay attention, real speed can differ a bit due to discreetness.
 // Leave last 2 tx queues not rated.
-$ echo 20 > /sys/class/net/eth1/queues/tx-0/tx_maxrate
-$ echo 10 > /sys/class/net/eth1/queues/tx-1/tx_maxrate
+$ echo 20 > /sys/class/net/eth0/queues/tx-0/tx_maxrate
+$ echo 10 > /sys/class/net/eth0/queues/tx-1/tx_maxrate
 
 4)
 // Check maximum rate of tx (cpdma) queues:
-$ cat /sys/class/net/eth1/queues/tx-*/tx_maxrate
+$ cat /sys/class/net/eth0/queues/tx-*/tx_maxrate
 20
 10
 0
@@ -130,21 +128,21 @@ $ cat /sys/class/net/eth1/queues/tx-*/tx_maxrate
 // 3pri -> tc0, 2pri -> tc1, (0,1,4-7)pri -> tc2
 // Map traffic class to transmit queue:
 // tc0 -> txq0, tc1 -> txq1, tc2 -> (txq2, txq3)
-$ tc qdisc replace dev eth1 handle 100: parent root mqprio num_tc 3 \
+$ tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 
 5a)
 // As two interface sharing same set of tx queues, assign all traffic
 // coming to interface Eth1 to separate queue in order to not mix it
-// with traffic from interface Eth1, so use separate txq to send
+// with traffic from interface Eth0, so use separate txq to send
 // packets to Eth1, all prio -> tc0 and tc0 -> txq4
 // Here hw 0, so here still default configuration for eth1 in hw
-$ tc qdisc replace dev eth2 handle 100: parent root mqprio num_tc 1 \
+$ tc qdisc replace dev eth1 handle 100: parent root mqprio num_tc 1 \
 map 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 queues 1@4 hw 0
 
 6)
-// Check classes settings for eth1 and eth2
-$ tc -g class show dev eth1
+// Check classes settings for eth0 and eth1
+$ tc -g class show dev eth0
 +---(100:ffe2) mqprio
 |    +---(100:3) mqprio
 |    +---(100:4) mqprio
@@ -155,7 +153,7 @@ $ tc -g class show dev eth1
 +---(100:ffe0) mqprio
      +---(100:1) mqprio
 
-$ tc -g class show dev eth2
+$ tc -g class show dev eth1
 +---(100:ffe0) mqprio
      +---(100:5) mqprio
 
@@ -165,7 +163,7 @@ $ tc -g class show dev eth2
 // set it +1 Mb for reserve (important!)
 // here only idle slope is important, others arg are ignored
 // pay attention, real speed can differ a bit due to discreetness
-$ tc qdisc add dev eth1 parent 100:1 cbs locredit -1438 \
+$ tc qdisc add dev eth0 parent 100:1 cbs locredit -1438 \
 hicredit 62 sendslope -959000 idleslope 41000 offload 1
 net eth1: set FIFO3 bw = 50
 
@@ -173,26 +171,25 @@ net eth1: set FIFO3 bw = 50
 // set rate for class B - 21 Mbit (tc1, txq1) using CBS Qdisc:
 // includes rate from host + rate from BBB
 // set it +1 Mb for reserve (important!)
-$ tc qdisc add dev eth1 parent 100:2 cbs locredit -1468 \
+$ tc qdisc add dev eth0 parent 100:2 cbs locredit -1468 \
 hicredit 65 sendslope -979000 idleslope 21000 offload 1
 net eth1: set FIFO2 bw = 30
 
 9)
 // create vlan 100 to map sk->priority to vlan qos
-$ ip link add link eth1 name eth1.100 type vlan id 100
+$ ip link add link br0 name br0.100 type vlan id 100
 8021q: 802.1Q VLAN Support v1.8
 8021q: adding VLAN 0 to HW filter on device eth0
 8021q: adding VLAN 0 to HW filter on device eth1
-8021q: adding VLAN 0 to HW filter on device eth2
 
 10)
 // map skb->priority to L2 prio, 1 to 1
-$ ip link set eth1.100 type vlan \
+$ ip link set br0.100 type vlan \
 egress 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 
 11)
 // check egress map for vlan 100
-$ cat /proc/net/vlan/eth1.100
+$ cat /proc/net/vlan/br0.100
 [...]
 INGRESS priority mappings: 0:0  1:0  2:0  3:0  4:0  5:0  6:0 7:0
 EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
@@ -201,8 +198,8 @@ EGRESS priority mappings: 0:0 1:1 2:2 3:3 4:4 5:5 6:6 7:7
 // run your appropriate tools with socket option "SO_PRIORITY"
 // to 3 for class A or/and to 2 for class B
 // (I took at https://www.spinics.net/lists/netdev/msg460869.html)
-$ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p3 -s 1500&
-$ ./tsn_talker -d 18:03:73:66:87:42 -i eth1.100 -p2 -s 1500&
+$ ./tsn_talker -d 18:03:73:66:87:42 -i br0.100 -p3 -s 1500&
+$ ./tsn_talker -d 18:03:73:66:87:42 -i br0.100 -p2 -s 1500&
 
 BBB configuration
 =================
