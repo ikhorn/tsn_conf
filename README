@@ -14,7 +14,7 @@ The following examples was tested on AM572x EVM and BBB boards.
 Test setup
 ==========
 
-Under consideration two examples with AM52xx EVM running cpsw driver
+Under consideration two examples with AM572x EVM running cpsw driver
 in dual_emac mode.
 
 Several prerequisites:
@@ -61,7 +61,7 @@ Test setup for examples
 *********************************************************************
 Example 1: One port tx AVB configuration scheme for target board
 ----------------------------------------------------------------------
-(prints and scheme for AM52xx evm, applicable for single port boards)
+(prints and scheme for AM572x evm, applicable for single port boards)
 
 tc - traffic class
 txq - transmit queue
@@ -282,7 +282,7 @@ $ ethtool -L eth0 rx 1 tx 1
 *********************************************************************
 Example 2: Two port tx AVB configuration scheme for target board
 ----------------------------------------------------------------------
-(prints and scheme for AM52xx evm, for dual emac boards only)
+(prints and scheme for AM572x evm, for dual emac boards only)
 
 +------------------------------------------------------------------+ u
 | +----------+  +----------+  +------+  +----------+  +----------+ | s
