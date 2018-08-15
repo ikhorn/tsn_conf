@@ -84,6 +84,10 @@ $ bridge vlan add dev eth0 vid 100 master
 $ bridge vlan add dev eth1 vid 100 master
 $ bridge vlan add dev br0 vid 100 pvid untagged self
 
+# add permanent destination addresses of listener
+# (as ARP doesn't update table for l2 avtp)
+$ bridge fdb add 18:03:73:66:87:42 dev eth0 master vlan 100 permanent
+
 1)
 // Add 4 tx queues, for interface Eth0, and 1 tx queue for Eth1
 // Can be skipped if no need to send rated traffic from the host
