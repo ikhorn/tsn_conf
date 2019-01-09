@@ -1,0 +1,154 @@
+Simple steps to start testing xdp on cpsw TI AM572x SoC (arm v7)
+Can be changed while xdp evolution.
+
+Prerequisites:
+~$ - command on host
+~# - command on target board
+
+1)
+Apply the following patches:
+p1: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=4de1a27a270e860b7f0b5ac2d572fa08122d144d
+p2: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=7a65a160b594cff977465f13737d54d9e388bd08
+p3: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=06b534ba7f8b64284474a8671e914f4319385bc6
+p4: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=7d74c8a74c378d65745b6e947a7bbe4962a8e47a
+p5: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=ef0412b904b45254c095c232efb905b6245f32e9
+p6: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=432de7b8b31c6c5f14c9d4f2bfe9439111abfaa8
+p7: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=71980c4d79d70fac46a3977ea8fa983b10716043
+p8: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=c6c84d2f45ccc0f1c3c1e32d05b44ed0f42a2e0a
+
+2)
+config kernel with omap2plus_defconfig involved (I use my own merged config,
+you can use your) and build zImage along with dtb needed. Or, enable the
+following options added by patch p2:
+CONFIG_JIT=y
+CONFIG_BPFILTER=y
+CONFIG_BPF_SYSCALL=y
+CONFIG_XDP_SOCKETS=y
+CONFIG_BPF_EVENTS=y
+CONFIG_HAVE_EBPF_JIT=y
+CONFIG_BPF_JIT=y
+CONFIG_CGROUP_BPF=y
+
+3)
+Update kernel image, dtb, modules and kernel headers on remote target.
+
+4)
+If you don't want to bother with kernel samples and want simply test xdp
+support (not AF_XDP sockets) on cpsw you can skip a little and go to step 15).
+To be able to build eBPF C written programs, the clang with bpf support
+should be present (it creates like arch independent bytecode obj that is
+verified and compiled by JIT directly in the kernel). Also you can cross-compile
+clang for arm v7 and compile eBPF progs on the target board in order to not
+copy it each time. This allows you to attach eBPF programs with ip tool to XDP
+driver hook w/o any samples from kernel tree.
+
+5)
+I didn't manage to cross compile bpf samples on host w/o magic,
+so the following is needed at lest for now: kernel sources are needed to build
+bpf examples directly on the target board (not so much time), so create kernel
+snapshot:
+~$ git archive HEAD --format tgz -o snapshot_to_transfer.tgz
+
+6)
+Move snapshot to some folder SNAPSHOT on the target board and untar.
+(I didn't use NFS, it requires usb/Eth dongle to test network driver w/o
+headache):
+~# cd SNAPSHOT
+~# tar -zxvf snapshot_to_transfer.tgz && rm -rf snapshot_to_transfer.tgz
+
+7)
+The kernel snapshot can have incorrect "access time" for files that
+can loop normal build, so update access times on the files:
+~# find . -type f | xargs -n 4 touch
+
+8)
+Copy .config from host or make configuration again but on the target board
+
+9)
+Clean samples/bpf and tools to be sure everything is from scratch:
+~# cd samples/bpf
+~# make clean
+~# cd tools/bpf
+~# make clean
+
+10)
+For sure, update kernel headers from the snapshot:
+(for me, just cp to the /usr/include didn't help)
+~# make ARCH=arm headers_install
+
+11)
+Build bpf examples:
+~# cd samples/bpf
+~# make -j2 ARCH=arm
+
+12)
+verify AF_XDP socket example in drop mode (drops packets in userspace APP)
+./xdpsock -i eth0 -q 0 -r -N
+you can stop it by ctr + C
+
+13)
+verify AF_XDP socket in tx mode (from userspace APP)
+./xdpsock -i eth0 -q 0 -t -N
+you can stop it by ctr + C
+
+14)
+More examples can be seen here (xdp eBPF progs integrated):
+~# cd samples/bpf/
+
+./bpf/xdp_redirect_kern.c
+./bpf/xdp_tx_iptunnel_user.c
+./bpf/xdpsock_kern.c
+./bpf/xdp1_user.c
+./bpf/xdp_sample_pkts_user.c
+./bpf/xdp_rxq_info_user.c
+./bpf/xdp_tx_iptunnel_kern.c
+./bpf/xdp_router_ipv4_kern.c
+./bpf/xdp_adjust_tail_kern.c                        xdp1
+./bpf/xdp_sample_pkts_kern.c                        xdp_monitor
+./bpf/xdp_monitor_kern.c                            xdp_tx_iptunnel
+./bpf/xdp_redirect_map_user.c      ---------\       xdp_fwd
+./bpf/xdp_redirect_cpu_kern.c       compiled X      xdp_sample_pkts
+./bpf/xdp_monitor_user.c           ---------/       xdp_adjust_tail
+./bpf/xdp_fwd_user.c                                xdp_rxq_info
+./bpf/xdp2skb_meta.sh                               xdp2
+./bpf/xdpsock.h                                     xdp_redirect
+./bpf/xdp_adjust_tail_user.c                        xdp_redirect_cpu
+./bpf/xdp_redirect_user.c                           xdp_redirect_map
+./bpf/xdp2_kern.c                                   xdp_router_ipv4
+./bpf/xdp_rxq_info_kern.c                           xdpsock
+./bpf/xdp_redirect_cpu_user.c
+./bpf/xdp_redirect_map_kern.c
+./bpf/xdp2skb_meta_kern.c
+./bpf/xdpsock_user.c
+./bpf/xdp_fwd_kern.c
+./bpf/xdp_router_ipv4_user.c
+./bpf/xdp1_kern.c
+./bpf/xdp_tx_iptunnel_common.h
+
+15)
+if you don't want to bother with af_xdp support and kernel samples, you can
+write your own simplest eBPF xdp-example prog and do the following steps
+(for this only cpsw support is needed, p1, p2, p3 patches only):
+~# cat xdp-example.c
+#include <linux/bpf.h>
+
+int xdp_drop_all(struct xdp_md *ctx)
+{
+        return XDP_DROP;
+}
+
+You can do what ever you need with packet and return one of the values:
+XDP_ABORTED, XDP_DROP, XDP_PASS, XDP_TX, XDP_REDIRECT.
+
+16)
+build xdp-example eBPF prog obj with clang (at least with bpf support, can do on host):
+~# clang -O2 -Wall -target bpf -c xdp-example.c -o xdp-example.o
+
+17)
+attach xdp-example eBPF drop prog to the cpsw driver with ip tool:
+~# ip link set dev eth0 xdp obj xdp-example.o sec .text
+
+18)
+unload xdp program with ip command:
+~# ip link set dev eth0 xdp off
+After this driver works in regular "skb" mode
