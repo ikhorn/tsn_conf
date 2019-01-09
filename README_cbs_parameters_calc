@@ -1,0 +1,6 @@
+1) Calculate CBS parameters for classes A and B. i.e. BW for A is 20Mbps and
+   for B is 10Mbps:
+$ calc_cbs_params.py -A 20000 -a 1500 -B 10000 -b 1500
+
+2) The same, but for 100Mb interface:
+$ calc_cbs_params.py -A 20000 -a 1500 -B 10000 -b 1500 -S 100000
