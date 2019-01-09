@@ -136,7 +136,7 @@ $ tc qdisc replace dev eth0 handle 100: parent root mqprio num_tc 3 \
 map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 queues 1@0 1@1 2@2 hw 1
 
 5a)
-// As two interface sharing same set of tx queues, assign all traffic
+// As two interfaces sharing same set of tx queues, assign all traffic
 // coming to interface Eth1 to separate queue in order to not mix it
 // with traffic from interface Eth0, so use separate txq to send
 // packets to Eth1, all prio -> tc0 and tc0 -> txq4
@@ -165,7 +165,7 @@ $ tc -g class show dev eth1
 // set rate for class A - 41 Mbit (tc0, txq0) using CBS Qdisc
 // includes rate from host + rate from BBB
 // set it +1 Mb for reserve (important!)
-// here only idle slope is important, others arg are ignored
+// here only idle slope is important, rest args are ignored
 // pay attention, real speed can differ a bit due to discreetness
 $ tc qdisc add dev eth0 parent 100:1 cbs locredit -1438 \
 hicredit 62 sendslope -959000 idleslope 41000 offload 1
