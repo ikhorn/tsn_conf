@@ -1,0 +1,34 @@
+This README describes how to prepare armv7 clang and llvm for am572 TI sdk,
+that allows to build samples/bpf from kernel tree directly on the target board.
+
+1) Fetch sources from:
+$ git clone https://github.com/llvm/llvm-project.git
+
+2) Build llvm and clang for native system first (I'm using distcc), but
+   make sure the system has enouph RAM to link it (~25 GB)
+$ mkdir build
+$ cd build
+$ CC="distcc gcc" CXX="distcc g++" cmake -DLLVM_ENABLE_PROJECTS=clang ../llvm
+$ make -j16
+
+3) Build llvm and clang for ARM, pointing llvm-tblgen and clang-tblgen from
+   build directory and --sysroot on ti sdk sysroot.
+$ mkdir build_arm
+$ cd build_arm
+$ CC="distcc arm-linux-gnueabihf-gcc" CXX="distcc arm-linux-gnueabihf-g++" cmake \
+--target=arm-linux-gnueabihf \
+--sysroot=/home/ivan/emb/am572xx/ti-processor-sdk-linux-am57xx-evm-05.01.00.11/linux-devkit/sysroots/armv7ahf-neon-linux-gnueabi \
+-DCMAKE_CROSSCOMPILING=True \
+-DLLVM_TABLEGEN="/home/ivan/emb/llvm-project/build/bin/llvm-tblgen" \
+-DCLANG_TABLEGEN="/home/ivan/emb/llvm-project/build/bin/clang-tblgen" \
+-DLLVM_DEFAULT_TARGET_TRIPLE="arm-linux-gnueabihf" \
+-DLLVM_TARGET_ARCH=ARM \
+-DLLVM_ENABLE_PROJECTS=clang \
+-G "Unix Makefiles" \
+-DLLVM_TARGETS_TO_BUILD="BPF;ARM" \
+-DCMAKE_INSTALL_PREFIX="/home/ivan/emb/llvm-project/install_dir" \
+-DLLVM_ENABLE_PIC=False \
+-DCMAKE_CXX_FLAGS='-march=armv7-a -mtune=cortex-a15 -mfloat-abi=hard' \
+-DCMAKE_C_FLAGS='-march=armv7-a -mtune=cortex-a15 -mfloat-abi=hard' \
+../llvm
+$ make -j16
