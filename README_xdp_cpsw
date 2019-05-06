@@ -40,7 +40,9 @@ should be present (it creates like arch independent bytecode obj that is
 verified and compiled by JIT directly in the kernel). Also you can cross-compile
 clang for arm v7 and compile eBPF progs on the target board in order to not
 copy it each time. This allows you to attach eBPF programs with ip tool to XDP
-driver hook w/o any samples from kernel tree.
+driver hook w/o any samples from kernel tree. Also it's required to build
+samples/bpf from kernel tree directly on the board. How to prepare clang and
+llvm for am572x TI sdk read README_build_llvm_clang.
 
 5)
 I didn't manage to cross compile bpf samples on host w/o magic,
@@ -73,7 +75,6 @@ Clean samples/bpf and tools to be sure everything is from scratch:
 
 10)
 For sure, update kernel headers from the snapshot:
-(for me, just cp to the /usr/include didn't help)
 ~# make ARCH=arm headers_install
 
 11)
