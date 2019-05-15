@@ -69,7 +69,7 @@ Distclean:
 ~# make distclean
 
 9)
-Copy .config from host or make configuration again but on the target board
+Make configuration on the target board (copy defconfig from host first):
 ~# make ARCH=arm ti_sdk_dra7x_release_defconfig
 
 10)
