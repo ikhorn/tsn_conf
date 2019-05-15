@@ -1,3 +1,5 @@
+			Build ebpf, samples/bpf on am572x (armv7) ?
+
 Simple steps to start testing xdp on cpsw TI AM572x SoC (arm v7)
 Can be changed while xdp evolution.
 
@@ -6,7 +8,7 @@ Prerequisites:
 ~# - command on target board
 
 1)
-Apply the following patches:
+Apply the following patches (will be updated):
 p1: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=4de1a27a270e860b7f0b5ac2d572fa08122d144d
 p2: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=7a65a160b594cff977465f13737d54d9e388bd08
 p3: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=06b534ba7f8b64284474a8671e914f4319385bc6
@@ -34,21 +36,20 @@ Update kernel image, dtb, modules and kernel headers on remote target.
 
 4)
 If you don't want to bother with kernel samples and want simply test xdp
-support (not AF_XDP sockets) on cpsw you can skip a little and go to step 15).
-To be able to build eBPF C written programs, the clang with bpf support
-should be present (it creates like arch independent bytecode obj that is
-verified and compiled by JIT directly in the kernel). Also you can cross-compile
-clang for arm v7 and compile eBPF progs on the target board in order to not
-copy it each time. This allows you to attach eBPF programs with ip tool to XDP
-driver hook w/o any samples from kernel tree. Also it's required to build
+support on cpsw you can skip a little and go to step 15). To be able to build
+eBPF C written programs, the clang with bpf support should be present (it creates
+like arch independent bytecode obj that is verified and compiled by JIT directly
+in the kernel). At this moment clang and llc is not present in tiSDK, so I've
+corss-compiled clang for arm v7 and compiled eBPF progs on the target board in
+order to not copy it each time. This allows to attach eBPF programs with ip tool
+to XDP driver hook w/o any samples from kernel tree. Also it's required to build
 samples/bpf from kernel tree directly on the board. How to prepare clang and
 llvm for am572x TI sdk read README_build_llvm_clang.
 
 5)
-I didn't manage to cross compile bpf samples on host w/o magic,
-so the following is needed at lest for now: kernel sources are needed to build
-bpf examples directly on the target board (not so much time), so create kernel
-snapshot:
+I didn't cross compile bpf samples on host, so the following is needed at lest
+for now: kernel sources are needed to build bpf examples directly on the target
+board (not so much time), so create kernel snapshot:
 ~$ git archive HEAD --format tgz -o snapshot_to_transfer.tgz
 
 6)
@@ -64,35 +65,41 @@ can loop normal build, so update access times on the files:
 ~# find . -type f | xargs -n 4 touch
 
 8)
-Copy .config from host or make configuration again but on the target board
+Distclean:
+~# make distclean
 
 9)
+Copy .config from host or make configuration again but on the target board
+~# make ARCH=arm ti_sdk_dra7x_release_defconfig
+
+10)
 Clean samples/bpf and tools to be sure everything is from scratch:
 ~# cd samples/bpf
 ~# make clean
 ~# cd tools/bpf
 ~# make clean
-
-10)
-For sure, update kernel headers from the snapshot:
-~# make ARCH=arm headers_install
+~# cd ../..
 
 11)
+For sure, update kernel headers from the snapshot (must):
+~# make ARCH=arm headers_install
+
+12)
 Build bpf examples:
 ~# cd samples/bpf
 ~# make -j2 ARCH=arm
 
-12)
+13)
 verify AF_XDP socket example in drop mode (drops packets in userspace APP)
 ./xdpsock -i eth0 -q 0 -r -N
 you can stop it by ctr + C
 
-13)
+14)
 verify AF_XDP socket in tx mode (from userspace APP)
 ./xdpsock -i eth0 -q 0 -t -N
 you can stop it by ctr + C
 
-14)
+15)
 More examples can be seen here (xdp eBPF progs integrated):
 ~# cd samples/bpf/
 
@@ -126,7 +133,7 @@ More examples can be seen here (xdp eBPF progs integrated):
 ./bpf/xdp1_kern.c
 ./bpf/xdp_tx_iptunnel_common.h
 
-15)
+16)
 if you don't want to bother with af_xdp support and kernel samples, you can
 write your own simplest eBPF xdp-example prog and do the following steps
 (for this only cpsw support is needed, p1, p2, p3 patches only):
@@ -141,15 +148,15 @@ int xdp_drop_all(struct xdp_md *ctx)
 You can do what ever you need with packet and return one of the values:
 XDP_ABORTED, XDP_DROP, XDP_PASS, XDP_TX, XDP_REDIRECT.
 
-16)
+17)
 build xdp-example eBPF prog obj with clang (at least with bpf support, can do on host):
 ~# clang -O2 -Wall -target bpf -c xdp-example.c -o xdp-example.o
 
-17)
+18)
 attach xdp-example eBPF drop prog to the cpsw driver with ip tool:
 ~# ip link set dev eth0 xdp obj xdp-example.o sec .text
 
-18)
+19)
 unload xdp program with ip command:
 ~# ip link set dev eth0 xdp off
 After this driver works in regular "skb" mode
