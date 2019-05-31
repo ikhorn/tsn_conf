@@ -1,27 +1,46 @@
 			Build ebpf, samples/bpf on am572x (armv7) ?
+			Test xdp on am572x (armv7) ?
+			This shor README describes this
 
-Simple steps to start testing xdp on cpsw TI AM572x SoC (arm v7)
-Can be changed while xdp evolution.
+This README contains simple steps to start testing xdp on cpsw TI AM572x SoC
+(arm v7). Can be changed while xdp evolution, and number of required patches
+is going to be less or even absent in the future. Based on net-next/master LK v.
 
 Prerequisites:
 ~$ - command on host
 ~# - command on target board
 
 1)
-Apply the following patches (will be updated):
-p1: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=4de1a27a270e860b7f0b5ac2d572fa08122d144d
-p2: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=7a65a160b594cff977465f13737d54d9e388bd08
-p3: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=06b534ba7f8b64284474a8671e914f4319385bc6
-p4: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=7d74c8a74c378d65745b6e947a7bbe4962a8e47a
-p5: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=ef0412b904b45254c095c232efb905b6245f32e9
-p6: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=432de7b8b31c6c5f14c9d4f2bfe9439111abfaa8
-p7: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=71980c4d79d70fac46a3977ea8fa983b10716043
-p8: https://git.linaro.org/people/ivan.khoronzhuk/tsn_kernel.git/commit/?h=af_xdp_minimal_cpsw_arm32&id=c6c84d2f45ccc0f1c3c1e32d05b44ed0f42a2e0a
+Required patches for net-next/master LK v5.2-rc1
+------------------------------------------------
+
+p1 is to enable ebpf/xdp options:
+p2, p5 is a hack, and samples progs should be corrected instead, but it alows to
+build them w/o modifications:
+p3 is needed to test af_xdp sockets on am572x
+p9 - p15 - cpsw xdp support itself
+
+
+p1: https://github.com/ikhorn/af_xdp_stuff/commit/6cf3585390e52e112cff2f4f3b252ad56d664af2
+p2: https://github.com/ikhorn/af_xdp_stuff/commit/a083214b05172d0da1f9876f12e8e97eca3a55b9
+p3: https://github.com/ikhorn/af_xdp_stuff/commit/fd676b2a252752639594f5335e0470a9d82c457e
+p4: https://github.com/ikhorn/af_xdp_stuff/commit/e7badf55a76b8b7439e70e0a3a83cbf0178a1153
+p5: https://github.com/ikhorn/af_xdp_stuff/commit/68708f97bc8b4a3680155292d901040de78ebdf0
+p6: https://github.com/ikhorn/af_xdp_stuff/commit/58d549636a7ffaf8b46b1acfcd60f21aaaa95000
+p7: https://github.com/ikhorn/af_xdp_stuff/commit/822e39a30232fbd5b97e66599027c1dcddc9a304
+p8: https://github.com/ikhorn/af_xdp_stuff/commit/51ed9fd382b7ca0c95b6840d0a50e10a583a2f11
+p9: https://github.com/ikhorn/af_xdp_stuff/commit/4a72077f2e4b761a9ee91badd1575bcdcb9b5de1
+p10: https://github.com/ikhorn/af_xdp_stuff/commit/6199e96c3f9fc10b85b39d92195b7586bd028ecd
+p11: https://github.com/ikhorn/af_xdp_stuff/commit/fc97b1c4e5b4dadb9eadeb1fba9d80d1f6171300
+p12: https://github.com/ikhorn/af_xdp_stuff/commit/64e443a4ddc66e1194d891866ca9b08ce7a0f284
+p13: https://github.com/ikhorn/af_xdp_stuff/commit/d7fa5ac3f7faa72a0d53986acc0065608daf2825
+p14: https://github.com/ikhorn/af_xdp_stuff/commit/81045de731e0945012bd040a8d06a23a313f6fe8
+p15: https://github.com/ikhorn/af_xdp_stuff/commit/3cc85263261eb182d7b8ba24ca7bdef5ea0f2a2e
 
 2)
 config kernel with omap2plus_defconfig involved (I use my own merged config,
 you can use your) and build zImage along with dtb needed. Or, enable the
-following options added by patch p2:
+following options added by patch p1:
 CONFIG_JIT=y
 CONFIG_BPFILTER=y
 CONFIG_BPF_SYSCALL=y
