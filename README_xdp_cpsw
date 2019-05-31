@@ -152,6 +152,22 @@ More examples can be seen here (xdp eBPF progs integrated):
 ./bpf/xdp1_kern.c
 ./bpf/xdp_tx_iptunnel_common.h
 
+XDP_TX run on target board:
+~# ./xdp2 eth0
+
+And then send some UDP packet from host and observe same echoed packet with
+swapped sa and da addresses.
+
+XDP_DROP run on target board:
+~# ./xdp1 eth0
+
+XDP_REDIRECT take idx of the interfaces with and run:
+~# ip link show
+~# ./xdp_redirect 2 3
+
+AF_XDP socket drop:
+~# ./xdpsock -i eth0 -r
+
 16)
 if you don't want to bother with af_xdp support and kernel samples, you can
 write your own simplest eBPF xdp-example prog and do the following steps
