@@ -11,14 +11,13 @@ Prerequisites:
 ~# - command on target board
 
 1)
-Required patches for net-next/master LK v5.2-rc2
+Needed patches for net-next/master LK v5.3-rc3
 ------------------------------------------------
 
 p1 is to enable ebpf/xdp options:
 p2, p5 is a hack, and samples progs should be corrected instead, but it alows to
 build them w/o modifications:
 p3 is needed to test af_xdp sockets on armv7
-p9 - p15 - cpsw xdp support itself
 
 p1: https://github.com/ikhorn/af_xdp_stuff/commit/159ec7bae61f77e982f3af22eadc664fbb4a9ee0
 p2: https://github.com/ikhorn/af_xdp_stuff/commit/6b4364c639d8b7464ca706d6a15d97a4657b310b
@@ -28,13 +27,6 @@ p5: https://github.com/ikhorn/af_xdp_stuff/commit/23ca1bb406f94db8764653c9dce517
 p6: https://github.com/ikhorn/af_xdp_stuff/commit/d93d291e5ae2e0a94a006f0f0f204db8abb4d417
 p7: https://github.com/ikhorn/af_xdp_stuff/commit/7dfb5236cb815c439ebee2511bdc224af23e0028
 p8: https://github.com/ikhorn/af_xdp_stuff/commit/90656f88bf8c2956d47a3c0aaf338b1eaeda33c6
-p9: https://github.com/ikhorn/af_xdp_stuff/commit/0a49d6f394c29f7c20a07f360578dc726feda697
-p10: https://github.com/ikhorn/af_xdp_stuff/commit/99d410fc4b67109ed3c41a46c326e542cdfab612
-p11: https://github.com/ikhorn/af_xdp_stuff/commit/548ee7bc1c72ab9b7bfeb9770265ddd64387a876
-p12: https://github.com/ikhorn/af_xdp_stuff/commit/35ba74bb114713c63bc70d6a241d7932807a2824
-p13: https://github.com/ikhorn/af_xdp_stuff/commit/bc4e2abec643699d1833a3dd0b7588018b91dbe9
-p14: https://github.com/ikhorn/af_xdp_stuff/commit/e431fb4ff518ddf0f542a412c472a30aea11fa65
-p15: https://github.com/ikhorn/af_xdp_stuff/commit/3c74eefc64fd5847fbdeecd1b205b6c8cedffeb1
 
 2)
 config kernel with omap2plus_defconfig involved (I use my own merged config,
