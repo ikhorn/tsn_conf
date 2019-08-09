@@ -151,6 +151,13 @@ More examples can be seen here (xdp eBPF progs integrated):
 ./bpf/xdp1_kern.c
 ./bpf/xdp_tx_iptunnel_common.h
 
+To verify if bpf progs for embedding in kernel are built correctly use
+llvm-objdump, for instance:
+~#j llvm-objdump -S xdp1_kern.o
+
+If it's incorrect some kernel files can have similar size or no bpf
+instructions.
+
 XDP_TX run on target board:
 ~# ./xdp2 eth0
 
