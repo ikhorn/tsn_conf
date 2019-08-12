@@ -17,11 +17,9 @@ Needed patches for net-next/master LK v5.3-rc3
 p1 is to enable ebpf/xdp options:
 p2, p5 is a hack, and samples progs should be corrected instead, but it alows to
 build them w/o modifications:
-p3 is needed to test af_xdp sockets on armv7
 
 p1: https://github.com/ikhorn/af_xdp_stuff/commit/159ec7bae61f77e982f3af22eadc664fbb4a9ee0
 p2: https://github.com/ikhorn/af_xdp_stuff/commit/6b4364c639d8b7464ca706d6a15d97a4657b310b
-p3: https://github.com/ikhorn/af_xdp_stuff/commit/ca3ab6b504eae75ce1eb58c84e82c66c5ba1a16c
 p4: https://github.com/ikhorn/af_xdp_stuff/commit/84fb32a55b45c853e2392df3d7313f8d15911a28
 p5: https://github.com/ikhorn/af_xdp_stuff/commit/23ca1bb406f94db8764653c9dce51795fa895d7a
 p6: https://github.com/ikhorn/af_xdp_stuff/commit/d93d291e5ae2e0a94a006f0f0f204db8abb4d417
