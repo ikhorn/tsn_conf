@@ -15,16 +15,18 @@ Needed patches for net-next/master LK v5.3-rc3
 ------------------------------------------------
 
 p1 is to enable ebpf/xdp options:
-p2, p5 is a hack, and samples progs should be corrected instead, but it alows to
-build them w/o modifications:
 
-p1: https://github.com/ikhorn/af_xdp_stuff/commit/159ec7bae61f77e982f3af22eadc664fbb4a9ee0
-p2: https://github.com/ikhorn/af_xdp_stuff/commit/6b4364c639d8b7464ca706d6a15d97a4657b310b
-p4: https://github.com/ikhorn/af_xdp_stuff/commit/84fb32a55b45c853e2392df3d7313f8d15911a28
-p5: https://github.com/ikhorn/af_xdp_stuff/commit/23ca1bb406f94db8764653c9dce51795fa895d7a
-p6: https://github.com/ikhorn/af_xdp_stuff/commit/d93d291e5ae2e0a94a006f0f0f204db8abb4d417
-p7: https://github.com/ikhorn/af_xdp_stuff/commit/7dfb5236cb815c439ebee2511bdc224af23e0028
-p8: https://github.com/ikhorn/af_xdp_stuff/commit/90656f88bf8c2956d47a3c0aaf338b1eaeda33c6
+p1: https://github.com/ikhorn/af_xdp_stuff/commit/bd0b2ace3a30046f1186dd5bc7fba0cadfd3ac84
+p2: https://github.com/ikhorn/af_xdp_stuff/commit/bdd9aff24eabea5205b197d42f08e168d79c88a3
+p3: https://github.com/ikhorn/af_xdp_stuff/commit/2c6c6d538605aac39600dcb3c9b66de11c70b963
+p4: https://github.com/ikhorn/af_xdp_stuff/commit/aa645ccca4d844f404ec3c2b27402d4d7848d1b5
+p5: https://github.com/ikhorn/af_xdp_stuff/commit/221bcb43f548189c1bc645256e7874894774bfd1
+p6: https://github.com/ikhorn/af_xdp_stuff/commit/5facd1e056e94f9c0121d61ceec88d6e6fa06982
+p7: https://github.com/ikhorn/af_xdp_stuff/commit/41944f748479bc384f068068f2f4d1d2e81b6b57
+p8: https://github.com/ikhorn/af_xdp_stuff/commit/74a6bee964cc0f0685b7c61afd97fd03f0500864
+
+
+
 
 2)
 config kernel with omap2plus_defconfig involved (I use my own merged config,
