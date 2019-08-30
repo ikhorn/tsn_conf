@@ -32,3 +32,7 @@ $ CC="distcc arm-linux-gnueabihf-gcc" CXX="distcc arm-linux-gnueabihf-g++" cmake
 -DCMAKE_C_FLAGS='-march=armv7-a -mtune=cortex-a15 -mfloat-abi=hard' \
 ../llvm
 $ make -j16
+
+4) Copy needed binaries from build_arm on target board
+4a) Or whole install_dir on target board after:
+$make install
