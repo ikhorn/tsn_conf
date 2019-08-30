@@ -1,0 +1,36 @@
+This README contains information about configuration of taprio Qdisc
+For now based only on TI k4.19 branch and patches backported from mainline.
+
+Patches to be applied on TI k4.19, branch is here:
+https://github.com/ikhorn/ti_taprio/commits/taprio_tik4.19
+
+Counter part patches to be applied on iproute, branch is here:
+https://github.com/ikhorn/iproute2/commits/backported_taprio_changes
+
+1) Example for sw configuration:
+
+tc qdisc add dev eth0 parent root handle 100 taprio \
+        num_tc 3 \
+        map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 \
+        queues 1@0 1@1 2@2 \
+        base-time 10000000 \
+        sched-entry S 03 300000 \
+        sched-entry S 02 300000 \
+        sched-entry S 06 400000 \
+	clockid CLOCK_TAI \
+
+2) Example for h/w configuration of taprio Qdisc:
+
+tc qdisc add dev eth0 parent root handle 100 taprio \
+        num_tc 3 \
+        map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 \
+        queues 1@0 1@1 2@2 \
+        base-time 10000000 \
+        sched-entry S 03 300000 \
+        sched-entry S 02 300000 \
+        sched-entry S 06 400000 \
+        offload 1\
+        clockid CLOCK_TAI \
+
+3) To send traffic to appropriate queue, you need prio socket option to be set.
+I'm using plget, that actually has all needed infrastructure
